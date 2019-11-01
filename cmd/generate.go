@@ -16,17 +16,16 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/evenh/az-blob-hashdeep/internal"
 	"github.com/spf13/cobra"
 )
+
+import log "github.com/sirupsen/logrus"
 
 var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate a hashdeep compatible file list from an Azure Blob Storage container",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("generate called")
-	},
+	Run:   run,
 }
 
 func init() {
@@ -41,4 +40,14 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// generateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+}
+
+func run(cmd *cobra.Command, args []string) {
+	err, c := internal.NewJobConfig("container", "https://foo", 25)
+
+	if err != nil {
+		log.Fatalf("Caught error while creating config for 'generate'", err)
+	}
+
+	internal.Generate(c)
 }

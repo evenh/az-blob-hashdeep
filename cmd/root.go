@@ -20,13 +20,6 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-
-	"github.com/spf13/viper"
-)
-
-var (
-	AzureClientID     string
-	AzureClientSecret string
 )
 
 // Root is called when no subcommand is specified
@@ -48,23 +41,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(func() {
-		// Read in config from environment
-		viper.AutomaticEnv()
-	})
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.az-blob-hashdeep.yaml)")
-	rootCmd.PersistentFlags().StringVar(&AzureClientID, "client-id", "", "Azure Client ID")
-	rootCmd.PersistentFlags().StringVar(&AzureClientSecret, "client-secret", "", "Azure Client Secret")
-	_ = viper.BindPFlag("AZURE_CLIENT_ID", rootCmd.Flags().Lookup("client-id"))
-	_ = viper.BindPFlag("AZURE_CLIENT_SECRET", rootCmd.Flags().Lookup("client-secret"))
-}
-
-// initConfig reads in ENV variables if set.
-func initConfig() {
-	viper.AutomaticEnv()
+	// Persistent flags for subcommands
+	//rootCmd.PersistentFlags().StringVarP("client-id", "", "Azure Client ID")
+	//rootCmd.PersistentFlags().String("client-secret", "", "Azure Client Secret")
 }

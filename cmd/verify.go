@@ -25,7 +25,7 @@ var verifyCmd = &cobra.Command{
 	Use:   "verify",
 	Short: "Verify a hashdeep file list against Azure Blob Storage",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("verify called")
+		fmt.Println("not implemented yet :(")
 	},
 }
 

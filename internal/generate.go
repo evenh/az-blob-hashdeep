@@ -13,24 +13,10 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package internal
 
-import (
-	"os"
-
-	"github.com/evenh/az-blob-hashdeep/cmd"
-)
 import log "github.com/sirupsen/logrus"
 
-func main() {
-	// Logging
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:    true,
-		DisableTimestamp: false,
-	})
-	log.SetLevel(log.TraceLevel)
-	log.SetOutput(os.Stdout)
-
-	// Fire away
-	cmd.Execute()
+func Generate(config *JobConfig) {
+	log.Info("I will generate")
 }
