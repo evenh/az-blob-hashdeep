@@ -15,8 +15,97 @@ limitations under the License.
 */
 package internal
 
-import log "github.com/sirupsen/logrus"
+import (
+	"context"
+	"encoding/hex"
+	"fmt"
+	"net/url"
+	"os"
 
-func Generate(config *JobConfig) {
-	log.Info("I will generate")
+	"github.com/Azure/azure-storage-blob-go/azblob"
+	log "github.com/sirupsen/logrus"
+)
+
+const maxAzResults = 1000
+const channelSize = maxAzResults * 2
+
+func Generate(c *GenerateConfig) {
+	files := make(chan *HashdeepEntry, channelSize)
+	writer := &HashdeepOutputFile{OutputFile: c.OutputFile}
+
+	err := writer.Open()
+
+	if err != nil {
+		log.Fatalf("Error while configuring output: %+v", err)
+	}
+
+	defer writer.Close()
+
+	configureSubscriber(files, writer)
+	traverseBlobStorage(files, c)
+
+	log.Info("All done, exiting!")
+}
+
+func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile) {
+	go func() {
+		for fileEntry := range files {
+			err := writer.WriteEntry(fileEntry)
+
+			if err != nil {
+				log.Warn(err)
+			}
+		}
+	}()
+}
+
+func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
+	log.Infof("Attempting to traverse container '%s' from storage account '%s'", c.Container, c.AccountName)
+
+	// Configure credentials
+	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container))
+	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
+	if err != nil {
+		handleErrors(err)
+		os.Exit(1)
+	}
+
+	containerURL := azblob.NewContainerURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
+	ctx := context.Background()
+
+	// Self test: Can we reach the container via the API?
+	_, err = containerURL.GetProperties(ctx, azblob.LeaseAccessConditions{})
+	if err != nil {
+		handleErrors(err)
+		os.Exit(1)
+	}
+
+	// Do the traversal
+	log.Debug("Credentials, account and container is valid.")
+	log.Infof("Starting traversal. Results will be saved to %s", c.OutputFile)
+	for marker := (azblob.Marker{}); marker.NotDone(); {
+		listBlob, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{MaxResults: maxAzResults})
+		handleErrors(err)
+
+		// +1
+		marker = listBlob.NextMarker
+
+		// Process the blobs returned in this result segment (if the segment is empty, the loop body won't execute)
+		for _, blobInfo := range listBlob.Segment.BlobItems {
+			files <- &HashdeepEntry{
+				size:    *blobInfo.Properties.ContentLength,
+				md5hash: hex.EncodeToString(blobInfo.Properties.ContentMD5),
+				path:    blobInfo.Name,
+			}
+		}
+	}
+
+	// Close channel when done listing files
+	close(files)
+}
+
+func handleErrors(e error) {
+	if e != nil {
+		log.Warnf("Encountered error while listing blob segments: %v", e)
+	}
 }
