@@ -15,19 +15,23 @@ limitations under the License.
 */
 package internal
 
-import "errors"
+import (
+	"errors"
+)
 
-type JobConfig struct {
+type GenerateConfig struct {
+	AccountName string
+	AccountKey  string
 	Container   string
-	URL         string
-	Concurrency int
+	OutputFile  string
 }
 
-func NewJobConfig(container string, url string, concurrency int) (error, *JobConfig) {
-	config := &JobConfig{
+func NewGenerateConfig(account string, key string, container string, outputFile string) (error, *GenerateConfig) {
+	config := &GenerateConfig{
+		AccountName: account,
+		AccountKey:  key,
 		Container:   container,
-		URL:         url,
-		Concurrency: concurrency,
+		OutputFile:  outputFile,
 	}
 
 	if err := config.Validate(); err != nil {
@@ -37,17 +41,21 @@ func NewJobConfig(container string, url string, concurrency int) (error, *JobCon
 	return nil, config
 }
 
-func (c *JobConfig) Validate() error {
+func (c *GenerateConfig) Validate() error {
 	if c.Container == "" {
 		return errors.New("container must be specified")
 	}
 
-	if c.URL == "" {
-		return errors.New("URL must be specified")
+	if c.AccountName == "" {
+		return errors.New("account name must be specified")
 	}
 
-	if c.Concurrency <= 0 {
-		return errors.New("concurrency must be greater than zero")
+	if c.AccountKey == "" {
+		return errors.New("account key must be specified")
+	}
+
+	if c.OutputFile == "" {
+		return errors.New("output file must be specified")
 	}
 
 	return nil

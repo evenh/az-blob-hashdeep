@@ -22,6 +22,13 @@ import (
 
 import log "github.com/sirupsen/logrus"
 
+var (
+	accountName string
+	accountKey  string
+	container   string
+	outputFile  string
+)
+
 var generateCmd = &cobra.Command{
 	Use:   "generate",
 	Short: "Generate a hashdeep compatible file list from an Azure Blob Storage container",
@@ -31,22 +38,17 @@ var generateCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(generateCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// generateCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// generateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	generateCmd.Flags().StringVarP(&accountName, "account-name", "n", "", "Azure Blob Storage Account Name")
+	generateCmd.Flags().StringVarP(&accountKey, "account-key", "k", "", "Azure Blob Storage Account Key")
+	generateCmd.Flags().StringVarP(&container, "container", "c", "", "Azure Blob Storage container")
+	generateCmd.Flags().StringVarP(&outputFile, "output", "o", "", "File path to write results to (e.g. ~/az-hashdeep.txt)")
 }
 
 func run(cmd *cobra.Command, args []string) {
-	err, c := internal.NewJobConfig("container", "https://foo", 25)
+	err, c := internal.NewGenerateConfig(accountName, accountKey, container, outputFile)
 
 	if err != nil {
-		log.Fatalf("Caught error while creating config for 'generate'", err)
+		log.Fatalf("Configuration error: %+v", err)
 	}
 
 	internal.Generate(c)
