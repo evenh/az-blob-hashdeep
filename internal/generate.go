@@ -26,7 +26,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const maxAzResults = 1000
+const maxAzResults = 5000
 const channelSize = maxAzResults * 2
 
 func Generate(c *GenerateConfig) {
