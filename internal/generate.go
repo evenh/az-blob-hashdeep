@@ -39,21 +39,26 @@ func Generate(c *GenerateConfig) {
 		log.Fatalf("Error while configuring output: %+v", err)
 	}
 
-	defer writer.Close()
-
 	configureSubscriber(files, writer)
 	traverseBlobStorage(files, c)
 
 	log.Info("All done, exiting!")
+	os.Exit(0)
 }
 
 func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile) {
 	go func() {
-		for fileEntry := range files {
-			err := writer.WriteEntry(fileEntry)
+		for {
+			fileEntry, more := <-files
+			if more {
+				err := writer.WriteEntry(fileEntry)
 
-			if err != nil {
-				log.Warn(err)
+				if err != nil {
+					log.Warn(err)
+				}
+			} else {
+				writer.Close()
+				return
 			}
 		}
 	}()
