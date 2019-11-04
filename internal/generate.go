@@ -31,7 +31,7 @@ const channelSize = maxAzResults * 2
 
 func Generate(c *GenerateConfig) {
 	files := make(chan *HashdeepEntry, channelSize)
-	writer := &HashdeepOutputFile{OutputFile: c.OutputFile}
+	writer := &HashdeepOutputFile{OutputFile: c.OutputFile, PathPrefix: c.Prefix}
 
 	err := writer.Open()
 

@@ -74,7 +74,7 @@ func (h *HashdeepOutputFile) Open() error {
 }
 
 func (h HashdeepOutputFile) WriteEntry(e *HashdeepEntry) error {
-	_, err := h.writer.WriteString(strconv.FormatInt(e.size, 10) + "," + e.md5hash + "," + e.path + "\n")
+	_, err := h.writer.WriteString(strconv.FormatInt(e.size, 10) + "," + e.md5hash + "," + h.PathPrefix + e.path + "\n")
 
 	if err != nil {
 		return errors.Wrapf(err, "Error while writing entry to output file '%s'", h.OutputFile)

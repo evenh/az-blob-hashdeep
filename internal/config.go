@@ -24,14 +24,16 @@ type GenerateConfig struct {
 	AccountKey  string
 	Container   string
 	OutputFile  string
+	Prefix      string
 }
 
-func NewGenerateConfig(account string, key string, container string, outputFile string) (error, *GenerateConfig) {
+func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string) (error, *GenerateConfig) {
 	config := &GenerateConfig{
 		AccountName: account,
 		AccountKey:  key,
 		Container:   container,
 		OutputFile:  outputFile,
+		Prefix:      prefix,
 	}
 
 	if err := config.Validate(); err != nil {
