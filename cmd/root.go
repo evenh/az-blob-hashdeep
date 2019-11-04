@@ -17,9 +17,14 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+)
+
+var (
+	Version = "DEV-SNAPSHOT"
+	Commit  = "N/A"
 )
 
 // Root is called when no subcommand is specified
@@ -29,19 +34,13 @@ var rootCmd = &cobra.Command{
 	Long: `Generate a hashdeep compatible output from Azure Blob Storage or
 verify an existing hashdeep file list against an Azure Blob
 Storage container.`,
+	Version: fmt.Sprintf("%s (%s)", Version, Commit),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		log.Fatal(err)
 	}
-}
-
-func init() {
-	// Persistent flags for subcommands
-	//rootCmd.PersistentFlags().StringVarP("client-id", "", "Azure Client ID")
-	//rootCmd.PersistentFlags().String("client-secret", "", "Azure Client Secret")
 }
