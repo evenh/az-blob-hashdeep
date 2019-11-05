@@ -59,7 +59,7 @@ func (h *HashdeepOutputFile) Open() error {
 
 	// Write header and comment
 	cwd, err := os.Getwd()
-	args := strings.Join(os.Args[:], " ")
+	args := strings.Join(os.Args, " ")
 
 	if err != nil {
 		cwd = "<not able to determine working directory>"

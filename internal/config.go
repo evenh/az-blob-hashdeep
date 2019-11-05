@@ -27,7 +27,7 @@ type GenerateConfig struct {
 	Prefix      string
 }
 
-func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string) (error, *GenerateConfig) {
+func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string) (*GenerateConfig, error) {
 	config := &GenerateConfig{
 		AccountName: account,
 		AccountKey:  key,
@@ -37,10 +37,10 @@ func NewGenerateConfig(account string, key string, container string, outputFile 
 	}
 
 	if err := config.Validate(); err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return nil, config
+	return config, nil
 }
 
 func (c *GenerateConfig) Validate() error {

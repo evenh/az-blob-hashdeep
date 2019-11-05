@@ -47,7 +47,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	err, c := internal.NewGenerateConfig(accountName, accountKey, container, outputFile, prefix)
+	c, err := internal.NewGenerateConfig(accountName, accountKey, container, outputFile, prefix)
 
 	if err != nil {
 		log.Fatalf("Configuration error: %+v", err)

@@ -69,6 +69,7 @@ func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
 
 	// Configure credentials
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container))
+
 	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
 	if err != nil {
 		handleErrors(err)
@@ -88,6 +89,7 @@ func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
 	// Do the traversal
 	log.Debug("Credentials, account and container is valid.")
 	log.Infof("Starting traversal. Results will be saved to %s", c.OutputFile)
+
 	for marker := (azblob.Marker{}); marker.NotDone(); {
 		listBlob, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{MaxResults: maxAzResults})
 		handleErrors(err)
