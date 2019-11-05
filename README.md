@@ -1,4 +1,4 @@
-# az-blob-hashdeep
+# az-blob-hashdeep [![Build Status](https://travis-ci.org/evenh/az-blob-hashdeep.svg?branch=master)](https://travis-ci.org/evenh/az-blob-hashdeep) [![Go Report Card](https://goreportcard.com/badge/github.com/evenh/az-blob-hashdeep)](https://goreportcard.com/report/github.com/evenh/az-blob-hashdeep)
 
 A simple tool for generating [hashdeep](https://github.com/jessek/hashdeep) compatible output for an Azure Blob Storage container. Useful for verifying migration of data to/from Azure.
 
