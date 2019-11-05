@@ -13,32 +13,23 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package main
+package cmd
 
 import (
-	"os"
+	"fmt"
 
-	"github.com/evenh/az-blob-hashdeep/cmd"
-)
-import log "github.com/sirupsen/logrus"
-
-var (
-	Version = "DEV-SNAPSHOT"
-	Commit  = "N/A"
+	"github.com/spf13/cobra"
 )
 
-func main() {
-	cmd.Version = Version
-	cmd.Commit = Commit
+func init() {
+	rootCmd.AddCommand(versionCmd)
+}
 
-	// Logging
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:    true,
-		DisableTimestamp: false,
-	})
-	log.SetLevel(log.TraceLevel)
-	log.SetOutput(os.Stdout)
-
-	// Fire away
-	cmd.Execute(Version, Commit)
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print the version number",
+	Run: func(cmd *cobra.Command, args []string) {
+		versionString := fmt.Sprintf("az-blob-hashdeep %s (%s)", Version, Commit)
+		fmt.Println(versionString)
+	},
 }

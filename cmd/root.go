@@ -16,15 +16,13 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	Version = "DEV-SNAPSHOT"
-	Commit  = "N/A"
+	Version string
+	Commit  string
 )
 
 // Root is called when no subcommand is specified
@@ -34,12 +32,14 @@ var rootCmd = &cobra.Command{
 	Long: `Generate a hashdeep compatible output from Azure Blob Storage or
 verify an existing hashdeep file list against an Azure Blob
 Storage container.`,
-	Version: fmt.Sprintf("%s (%s)", Version, Commit),
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
+func Execute(version string, commit string) {
+	Version = version
+	Commit = commit
+
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal(err)
 	}

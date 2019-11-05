@@ -1,0 +1,62 @@
+project_name: az-blob-hashdeep
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    binary: az-blob-hashdeep
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.Commit={{.ShortCommit}}
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    goarm:
+      - 6
+      - 7
+    ignore:
+      - goos: darwin
+        goarch: arm64
+      - goos: darwin
+        goarch: i386
+      - goos: windows
+        goarch: arm64
+archives:
+  - id: distribution
+    format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    replacements:
+      darwin: macOS
+      linux: Linux
+      windows: Windows
+      amd64: x86_64
+    files:
+      - LICENSE
+      - README.md
+
+dockers:
+  - image_templates:
+      - "evenh/az-blob-hashdeep"
+      - "evenh/az-blob-hashdeep:latest"
+      - "evenh/az-blob-hashdeep:{{ .Version }}"
+    goos: linux
+    goarch: amd64
+    goarm: ''
+    binaries:
+      - az-blob-hashdeep
+    dockerfile: Dockerfile
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ .Tag }}-dev"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
