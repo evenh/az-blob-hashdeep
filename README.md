@@ -6,6 +6,8 @@ A simple tool for generating [hashdeep](https://github.com/jessek/hashdeep) comp
 
 ## How to use?
 
+Get precompiled binaries from the [releases page](https://github.com/evenh/az-blob-hashdeep/releases) or use the [Docker image](https://hub.docker.com/repository/docker/evenh/az-blob-hashdeep): `evenh/az-blob-hashdeep`.
+
 ```bash
 export AZURE_ACCOUNT_NAME=myaccount
 export AZURE_ACCOUNT_KEY=secretKey
