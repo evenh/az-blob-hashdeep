@@ -2,7 +2,7 @@
 
 A simple tool for generating [hashdeep](https://github.com/jessek/hashdeep) compatible output for an Azure Blob Storage container. Useful for verifying migration of data to/from Azure.
 
-**PS:** This implementation requires that the `Content-MD5` is set for all the blobs in a container. 
+This implementation requires that the `Content-MD5` is set for all the blobs in a container. It will **not** verify the hashes, it will only be used for the final output. 
 
 ## How to use?
 
