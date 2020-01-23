@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"sync"
 
 	"github.com/Azure/azure-storage-blob-go/azblob"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ const maxAzResults = 5000
 const channelSize = maxAzResults * 2
 
 func Generate(c *GenerateConfig) {
+	var wg sync.WaitGroup
 	files := make(chan *HashdeepEntry, channelSize)
 	writer := &HashdeepOutputFile{OutputFile: c.OutputFile, PathPrefix: c.Prefix}
 
@@ -39,14 +41,17 @@ func Generate(c *GenerateConfig) {
 		log.Fatalf("Error while configuring output: %+v", err)
 	}
 
-	configureSubscriber(files, writer)
+	configureSubscriber(files, writer, &wg)
 	traverseBlobStorage(files, c)
 
+	wg.Wait()
 	log.Info("All done, exiting!")
 	os.Exit(0)
 }
 
-func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile) {
+func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile, wg *sync.WaitGroup) {
+	count := 0
+	wg.Add(1)
 	go func() {
 		for {
 			fileEntry, more := <-files
@@ -56,8 +61,13 @@ func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile) 
 				if err != nil {
 					log.Warn(err)
 				}
+
+				count++
 			} else {
+				log.Println("Closing files channel")
 				writer.Close()
+				log.Printf("Processed %d entries", count)
+				wg.Done()
 				return
 			}
 		}

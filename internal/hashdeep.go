@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 )
 
 const header = `%%%% HASHDEEP-1.0
@@ -94,6 +95,8 @@ func (h *HashdeepOutputFile) Close() error {
 	if err != nil {
 		return errors.Wrapf(err, "Could not close results file '%s'", h.OutputFile)
 	}
+
+	log.Println("Flushed and closed results file")
 
 	return nil
 }
