@@ -25,15 +25,19 @@ type GenerateConfig struct {
 	Container   string
 	OutputFile  string
 	Prefix      string
+	Calculate   bool
+	WorkerCount int
 }
 
-func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string) (*GenerateConfig, error) {
+func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string, calculate bool, workerCount int) (*GenerateConfig, error) {
 	config := &GenerateConfig{
 		AccountName: account,
 		AccountKey:  key,
 		Container:   container,
 		OutputFile:  outputFile,
 		Prefix:      prefix,
+		Calculate:   calculate,
+		WorkerCount: workerCount,
 	}
 
 	if err := config.Validate(); err != nil {

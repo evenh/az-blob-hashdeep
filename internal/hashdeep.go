@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -48,10 +49,13 @@ type HashdeepOutputFile struct {
 }
 
 func (h *HashdeepOutputFile) Open() error {
+	if err := h.checkDirectoryExists(); err != nil {
+		return err
+	}
 	file, err := os.OpenFile(h.OutputFile, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0755)
 
 	if err != nil {
-		return errors.Wrapf(err, "Error opening results file '%s", h.OutputFile)
+		return err
 	}
 
 	h.file = file
@@ -78,7 +82,7 @@ func (h HashdeepOutputFile) WriteEntry(e *HashdeepEntry) error {
 	_, err := h.writer.WriteString(strconv.FormatInt(e.size, 10) + "," + e.md5hash + "," + h.PathPrefix + e.path + "\n")
 
 	if err != nil {
-		return errors.Wrapf(err, "Error while writing entry to output file '%s'", h.OutputFile)
+		return errors.Wrapf(err, "error while writing entry to output file '%s'", h.OutputFile)
 	}
 
 	return nil
@@ -86,13 +90,30 @@ func (h HashdeepOutputFile) WriteEntry(e *HashdeepEntry) error {
 
 func (h *HashdeepOutputFile) Close() error {
 	if err := h.writer.Flush(); err != nil {
-		return errors.Wrap(err, "Could not flush output writer")
+		return errors.Wrap(err, "could not flush output writer")
 	}
 
 	if err := h.file.Close(); err != nil {
-		return errors.Wrapf(err, "Could not close results file '%s'", h.OutputFile)
+		return errors.Wrapf(err, "could not close results file '%s'", h.OutputFile)
 	}
 
-	log.Info("Flushed and closed results file")
+	log.Info("flushed and closed results file")
+	return nil
+}
+
+func (h *HashdeepOutputFile) checkDirectoryExists() error {
+	directory := filepath.Dir(h.OutputFile)
+	if _, err := os.Stat(directory); err != nil {
+		if os.IsNotExist(err) {
+			log.Infof("directory %s doesn't exist, creating", directory)
+			if err := os.MkdirAll(directory, 0777); err != nil {
+				return err
+			}
+			return nil
+		}
+
+		return err
+	}
+
 	return nil
 }

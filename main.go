@@ -38,11 +38,10 @@ func main() {
 		DisableTimestamp: false,
 	})
 
-	debugFlag, _ := strconv.ParseBool(os.Getenv("ABH_DEBUG"))
-	if debugFlag {
+	log.SetLevel(log.InfoLevel)
+	if debugFlag, _ := strconv.ParseBool(os.Getenv("ABH_DEBUG")); debugFlag {
 		log.SetLevel(log.TraceLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
+		log.Debug("Debug logging enabled")
 	}
 
 	log.SetOutput(os.Stdout)

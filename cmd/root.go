@@ -16,13 +16,16 @@ limitations under the License.
 package cmd
 
 import (
+	"runtime"
+
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
 var (
-	Version string
-	Commit  string
+	Version     string
+	Commit      string
+	workerCount int
 )
 
 // Root is called when no subcommand is specified
@@ -32,6 +35,10 @@ var rootCmd = &cobra.Command{
 	Long: `Generate a hashdeep compatible output from Azure Blob Storage or
 verify an existing hashdeep file list against an Azure Blob
 Storage container.`,
+}
+
+func init() {
+	rootCmd.Flags().IntVarP(&workerCount, "workers", "w", runtime.NumCPU()*10, "Number of background workers")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

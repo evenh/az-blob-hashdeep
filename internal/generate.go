@@ -17,112 +17,154 @@ package internal
 
 import (
 	"context"
-	"encoding/hex"
 	"fmt"
-	"net/url"
 	"os"
 	"sync"
 
-	"github.com/Azure/azure-storage-blob-go/azblob"
+	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
+	"github.com/evenh/az-blob-hashdeep/internal/hashes"
+	md5simd "github.com/minio/md5-simd"
+	"github.com/openlyinc/pointy"
 	log "github.com/sirupsen/logrus"
 )
 
-const maxAzResults = 5000
+const maxAzResults int32 = 5000
 const channelSize = maxAzResults * 2
 
-func Generate(c *GenerateConfig) {
+var mdFivess = md5simd.NewServer()
+
+func Generate(ctx context.Context, c *GenerateConfig) {
+	defer mdFivess.Close()
+
 	var wg sync.WaitGroup
 	files := make(chan *HashdeepEntry, channelSize)
 	writer := &HashdeepOutputFile{OutputFile: c.OutputFile, PathPrefix: c.Prefix}
-
-	err := writer.Open()
-
-	if err != nil {
-		log.Fatalf("Error while configuring output: %+v", err)
+	if err := writer.Open(); err != nil {
+		log.Fatalf("error while configuring output: %v", err)
 	}
 
-	configureSubscriber(files, writer, &wg)
-	traverseBlobStorage(files, c)
+	configureSubscriber(ctx, files, writer, &wg)
+	traverseBlobStorage(ctx, files, c)
 
+	log.Debugf("awaiting wg")
 	wg.Wait()
-	log.Info("All done, exiting!")
+	log.Info("all done, exiting!")
 	os.Exit(0)
 }
 
-func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile, wg *sync.WaitGroup) {
+func configureSubscriber(ctx context.Context, files chan *HashdeepEntry, writer *HashdeepOutputFile, wg *sync.WaitGroup) {
 	count := 0
 	wg.Add(1)
 	go func() {
-		for {
-			fileEntry, more := <-files
-			if more {
-				if err := writer.WriteEntry(fileEntry); err != nil {
-					log.Warn(err)
-				}
+		defer writer.Close()
+		defer wg.Done()
 
-				count++
-			} else {
-				log.Info("Closing files channel")
-				writer.Close()
-				log.Infof("Processed %d entries", count)
-				wg.Done()
+		for {
+			select {
+			case <-ctx.Done():
+				log.Warnf("will not write more entries to results file because of cancellation")
 				return
+			default:
+				fileEntry, more := <-files
+				if more {
+					if err := writer.WriteEntry(fileEntry); err != nil {
+						log.Warn(err)
+					}
+
+					count++
+				} else {
+					log.Infof("processed %d entries", count)
+					return
+				}
 			}
 		}
 	}()
 }
 
-func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
-	log.Infof("Request to traverse container '%s' from storage account '%s'. Initiating self-test...", c.Container, c.AccountName)
+func traverseBlobStorage(ctx context.Context, files chan *HashdeepEntry, c *GenerateConfig) {
+	logger := log.WithField("phase", "storage_account_container_traversal")
+	container := azureCheck(ctx, c)
+
+	// Configure hashing strategy
+	var hasher hashes.Hasher
+	if c.Calculate {
+		logger.Info("hashing strategy: Download files and calculate hashes locally")
+		hasher = hashes.DownloadAndCalculateHasher{
+			Client:           &container,
+			MdFiveHashServer: &mdFivess,
+		}
+	} else {
+		logger.Info("hashing strategy: Use hash from blob metadata")
+		hasher = hashes.MetadataHasher{}
+	}
+	hashJobs, workersGroup := configureBackgroundWorkers(ctx, c.WorkerCount, hasher, files)
+
+	// Do the traversal
+	logger.Infof("starting traversal, results will be saved to %s", c.OutputFile)
+	pager := container.ListBlobsFlat(&azblob.ContainerListBlobFlatSegmentOptions{
+		Maxresults: pointy.Int32(maxAzResults),
+	})
+
+	for pager.NextPage(ctx) {
+		resp := pager.PageResponse()
+		logger.Debugf("page=%s", *resp.ContainerListBlobFlatSegmentResult.RequestID)
+		for _, blobInfo := range resp.ContainerListBlobFlatSegmentResult.Segment.BlobItems {
+			if blobInfo != nil {
+				hashJobs <- *blobInfo
+			} else {
+				logger.Warnf("encountered a nil blob in response from Azure")
+			}
+
+			select {
+			case <-ctx.Done():
+				logger.Warn("force-stopping traversal")
+				close(hashJobs)
+				return
+			default:
+			}
+		}
+	}
+	logger.Debugf("queued up all jobs")
+	close(hashJobs)
+
+	if err := pager.Err(); err != nil {
+		handleErrors("list_blobs", err)
+	}
+
+	logger.Debug("awaiting workersGroup")
+	workersGroup.Wait()
+	close(files)
+}
+
+func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
+	logger := log.WithField("phase", "azure_checks")
+	logger.Infof("request to traverse container '%s' from storage account '%s' – initiating self-test...", c.Container, c.AccountName)
 
 	// Configure credentials
-	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container))
+	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container)
 
-	log.Debug("Checking if credentials passes a smoke test")
+	logger.Debug("checking if credentials passes a smoke test")
 	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
 	if err != nil {
-		handleErrors("credential_test", err)
+		handleErrors("credential_configuration", err)
 		os.Exit(1)
 	}
 
-	containerURL := azblob.NewContainerURL(*u, azblob.NewPipeline(credential, azblob.PipelineOptions{}))
-	ctx := context.Background()
+	container, err := azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	if err != nil {
+		handleErrors("az_client_configuration", err)
+		os.Exit(1)
+	}
 
 	// Self test: Can we reach the container via the API?
-	log.Debug("Performing connectivity test")
-	_, err = containerURL.GetProperties(ctx, azblob.LeaseAccessConditions{})
+	logger.Debug("performing connectivity test")
+	_, err = container.GetProperties(ctx, nil)
 	if err != nil {
 		handleErrors("connectivity_test", err)
 		os.Exit(1)
 	}
 
-	// Do the traversal
-	log.Debug("Credentials, account and container is valid.")
-	log.Infof("Starting traversal. Results will be saved to %s", c.OutputFile)
+	logger.Debug("credentials, account and container is valid.")
 
-	for marker := (azblob.Marker{}); marker.NotDone(); {
-		listBlob, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{MaxResults: maxAzResults})
-		handleErrors("list_blobs", err)
-
-		// +1
-		marker = listBlob.NextMarker
-
-		// Process the blobs returned in this result segment (if the segment is empty, the loop body won't execute)
-		for _, blobInfo := range listBlob.Segment.BlobItems {
-			files <- &HashdeepEntry{
-				size:    *blobInfo.Properties.ContentLength,
-				md5hash: hex.EncodeToString(blobInfo.Properties.ContentMD5),
-				path:    blobInfo.Name,
-			}
-		}
-	}
-
-	// Close channel when done listing files
-	close(files)
-}
-
-func handleErrors(step string, err error) {
-	if err != nil {
-		log.Warnf("%s: Encountered error: %v", step, err)
-	}
+	return container
 }

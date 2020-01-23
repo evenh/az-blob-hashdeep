@@ -2,7 +2,7 @@
 
 A simple tool for generating [hashdeep](https://github.com/jessek/hashdeep) compatible output for an Azure Blob Storage container. Useful for verifying migration of data to/from Azure.
 
-This implementation requires that the `Content-MD5` is set for all the blobs in a container. It will **not** verify the hashes, it will only be used for the final output. 
+The default implementation requires that the `Content-MD5` is set for all the blobs in a container. It will **not** verify the hashes, it will only be used for the final output. Optionally `--calculate` can be set to download every file to memory in order to calculate the actual MD5.  
 
 ## How to use?
 
@@ -39,6 +39,9 @@ Path: foo/bar/file.txt
 Prefix: old-fs-01
 Outputted path: old-fs-01/foo/bar/file.txt
 ```
+
+## Generate MD5 hashes locally
+If you want to generate MD5 hashes from the content of a container, pass the `--calculate` flag. This operation is heavily CPU bound and will eat up your cores :-)
 
 ### Troubleshooting
 
