@@ -64,9 +64,9 @@ func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile, 
 
 				count++
 			} else {
-				log.Println("Closing files channel")
+				log.Info("Closing files channel")
 				writer.Close()
-				log.Printf("Processed %d entries", count)
+				log.Infof("Processed %d entries", count)
 				wg.Done()
 				return
 			}
@@ -75,14 +75,15 @@ func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile, 
 }
 
 func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
-	log.Infof("Attempting to traverse container '%s' from storage account '%s'", c.Container, c.AccountName)
+	log.Infof("Request to traverse container '%s' from storage account '%s'. Initiating self-test...", c.Container, c.AccountName)
 
 	// Configure credentials
 	u, _ := url.Parse(fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container))
 
+	log.Debug("Checking if credentials passes a smoke test")
 	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
 	if err != nil {
-		handleErrors(err)
+		handleErrors("credential_test", err)
 		os.Exit(1)
 	}
 
@@ -90,9 +91,10 @@ func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
 	ctx := context.Background()
 
 	// Self test: Can we reach the container via the API?
+	log.Debug("Performing connectivity test")
 	_, err = containerURL.GetProperties(ctx, azblob.LeaseAccessConditions{})
 	if err != nil {
-		handleErrors(err)
+		handleErrors("connectivity_test", err)
 		os.Exit(1)
 	}
 
@@ -102,7 +104,7 @@ func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
 
 	for marker := (azblob.Marker{}); marker.NotDone(); {
 		listBlob, err := containerURL.ListBlobsFlatSegment(ctx, marker, azblob.ListBlobsSegmentOptions{MaxResults: maxAzResults})
-		handleErrors(err)
+		handleErrors("list_blobs", err)
 
 		// +1
 		marker = listBlob.NextMarker
@@ -121,8 +123,8 @@ func traverseBlobStorage(files chan *HashdeepEntry, c *GenerateConfig) {
 	close(files)
 }
 
-func handleErrors(e error) {
-	if e != nil {
-		log.Warnf("Encountered error while listing blob segments: %v", e)
+func handleErrors(step string, err error) {
+	if err != nil {
+		log.Warnf("%s: Encountered error: %v", step, err)
 	}
 }

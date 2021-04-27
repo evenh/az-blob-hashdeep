@@ -17,10 +17,11 @@ package main
 
 import (
 	"os"
+	"strconv"
 
 	"github.com/evenh/az-blob-hashdeep/cmd"
+	log "github.com/sirupsen/logrus"
 )
-import log "github.com/sirupsen/logrus"
 
 var (
 	Version = "DEV-SNAPSHOT"
@@ -36,7 +37,14 @@ func main() {
 		FullTimestamp:    true,
 		DisableTimestamp: false,
 	})
-	log.SetLevel(log.TraceLevel)
+
+	debugFlag, _ := strconv.ParseBool(os.Getenv("ABH_DEBUG"))
+	if debugFlag {
+		log.SetLevel(log.TraceLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
+
 	log.SetOutput(os.Stdout)
 
 	// Fire away

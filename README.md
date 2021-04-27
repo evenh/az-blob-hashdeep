@@ -40,6 +40,10 @@ Prefix: old-fs-01
 Outputted path: old-fs-01/foo/bar/file.txt
 ```
 
+### Troubleshooting
+
+Set `ABH_DEBUG=true` to see more detailed logging.
+
 ## Contributing
 
 Contributions in form of issues and pull requests are most welcome.

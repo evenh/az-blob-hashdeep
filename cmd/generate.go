@@ -17,10 +17,9 @@ package cmd
 
 import (
 	"github.com/evenh/az-blob-hashdeep/internal"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
-
-import log "github.com/sirupsen/logrus"
 
 var (
 	accountName string

@@ -96,7 +96,7 @@ func (h *HashdeepOutputFile) Close() error {
 		return errors.Wrapf(err, "Could not close results file '%s'", h.OutputFile)
 	}
 
-	log.Println("Flushed and closed results file")
+	log.Info("Flushed and closed results file")
 
 	return nil
 }
