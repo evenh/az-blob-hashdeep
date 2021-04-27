@@ -56,9 +56,7 @@ func configureSubscriber(files chan *HashdeepEntry, writer *HashdeepOutputFile, 
 		for {
 			fileEntry, more := <-files
 			if more {
-				err := writer.WriteEntry(fileEntry)
-
-				if err != nil {
+				if err := writer.WriteEntry(fileEntry); err != nil {
 					log.Warn(err)
 				}
 

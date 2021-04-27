@@ -85,18 +85,14 @@ func (h HashdeepOutputFile) WriteEntry(e *HashdeepEntry) error {
 }
 
 func (h *HashdeepOutputFile) Close() error {
-	err := h.writer.Flush()
-	if err != nil {
+	if err := h.writer.Flush(); err != nil {
 		return errors.Wrap(err, "Could not flush output writer")
 	}
 
-	err = h.file.Close()
-
-	if err != nil {
+	if err := h.file.Close(); err != nil {
 		return errors.Wrapf(err, "Could not close results file '%s'", h.OutputFile)
 	}
 
 	log.Info("Flushed and closed results file")
-
 	return nil
 }
