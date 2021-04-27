@@ -1,6 +1,6 @@
 module github.com/evenh/az-blob-hashdeep
 
-go 1.13
+go 1.16
 
 require (
 	github.com/Azure/azure-storage-blob-go v0.13.0
