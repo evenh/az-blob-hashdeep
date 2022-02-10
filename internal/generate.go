@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"sync/atomic"
+	"time"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/evenh/az-blob-hashdeep/internal/hashes"
@@ -30,6 +32,7 @@ import (
 
 const maxAzResults int32 = 5000
 const channelSize = maxAzResults * 2
+const progressInterval = 30 * time.Second
 
 var mdFivess = md5simd.NewServer()
 
@@ -53,17 +56,24 @@ func Generate(ctx context.Context, c *GenerateConfig) {
 }
 
 func configureSubscriber(ctx context.Context, files chan *HashdeepEntry, writer *HashdeepOutputFile, wg *sync.WaitGroup) {
-	count := 0
+	logger := log.WithField("phase", "results_writer")
+	var count uint64 = 0
+
 	wg.Add(1)
+
 	go func() {
 		defer writer.Close()
 		defer wg.Done()
+
+		progressTicker := time.NewTicker(progressInterval)
 
 		for {
 			select {
 			case <-ctx.Done():
 				log.Warnf("will not write more entries to results file because of cancellation")
 				return
+			case <-progressTicker.C:
+				logger.Infof("processed so far: %d", count)
 			default:
 				fileEntry, more := <-files
 				if more {
@@ -71,9 +81,9 @@ func configureSubscriber(ctx context.Context, files chan *HashdeepEntry, writer 
 						log.Warn(err)
 					}
 
-					count++
+					atomic.AddUint64(&count, 1)
 				} else {
-					log.Infof("processed %d entries", count)
+					logger.Infof("processed totally %d entries", count)
 					return
 				}
 			}
