@@ -38,7 +38,7 @@ Storage container.`,
 }
 
 func init() {
-	rootCmd.Flags().IntVarP(&workerCount, "workers", "w", runtime.NumCPU()*10, "Number of background workers")
+	rootCmd.PersistentFlags().IntVarP(&workerCount, "workers", "w", runtime.NumCPU()*10, "Number of background workers")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
