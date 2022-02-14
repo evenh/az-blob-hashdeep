@@ -150,17 +150,7 @@ func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
 	logger := log.WithField("phase", "azure_checks")
 	logger.Infof("request to traverse container '%s' from storage account '%s' – initiating self-test...", c.Container, c.AccountName)
 
-	// Configure credentials
-	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container)
-
-	logger.Debug("checking if credentials passes a smoke test")
-	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
-	if err != nil {
-		handleErrors("credential_configuration", err)
-		os.Exit(1)
-	}
-
-	container, err := azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	container, err := configureContainerClient(c)
 	if err != nil {
 		handleErrors("az_client_configuration", err)
 		os.Exit(1)
@@ -177,4 +167,24 @@ func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
 	logger.Debug("credentials, account and container is valid.")
 
 	return container
+}
+
+func configureContainerClient(c *GenerateConfig) (azblob.ContainerClient, error) {
+	logger := log.WithField("phase", "configure_auth")
+	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container)
+
+	if len(c.SasToken) > 0 {
+		logger.Infof("Using SAS token")
+		sasFormat := fmt.Sprintf("%s?%s", u, c.SasToken)
+		return azblob.NewContainerClientWithNoCredential(sasFormat, nil)
+	}
+
+	// Account key
+	logger.Infof("Using Account Key")
+	credential, err := azblob.NewSharedKeyCredential(c.AccountName, c.AccountKey)
+	if err != nil {
+		log.Fatalf("could not configure account key: %+v", err)
+	}
+
+	return azblob.NewContainerClientWithSharedKey(u, credential, nil)
 }

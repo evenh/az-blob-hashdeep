@@ -17,11 +17,13 @@ package internal
 
 import (
 	"errors"
+	"strings"
 )
 
 type GenerateConfig struct {
 	AccountName string
 	AccountKey  string
+	SasToken    string
 	Container   string
 	OutputFile  string
 	Prefix      string
@@ -29,10 +31,11 @@ type GenerateConfig struct {
 	WorkerCount int
 }
 
-func NewGenerateConfig(account string, key string, container string, outputFile string, prefix string, calculate bool, workerCount int) (*GenerateConfig, error) {
+func NewGenerateConfig(account string, key string, sasToken string, container string, outputFile string, prefix string, calculate bool, workerCount int) (*GenerateConfig, error) {
 	config := &GenerateConfig{
 		AccountName: account,
 		AccountKey:  key,
+		SasToken:    sasToken,
 		Container:   container,
 		OutputFile:  outputFile,
 		Prefix:      prefix,
@@ -56,8 +59,12 @@ func (c *GenerateConfig) Validate() error {
 		return errors.New("account name must be specified")
 	}
 
-	if c.AccountKey == "" {
-		return errors.New("account key must be specified")
+	if c.AccountKey == "" && c.SasToken == "" {
+		return errors.New("either account key or SAS token must be specified")
+	}
+
+	if c.SasToken != "" {
+		c.SasToken = strings.TrimPrefix(c.SasToken, "?")
 	}
 
 	if c.OutputFile == "" {

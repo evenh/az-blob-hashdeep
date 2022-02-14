@@ -29,6 +29,7 @@ import (
 var (
 	accountName string
 	accountKey  string
+	sasToken    string
 	container   string
 	outputFile  string
 	prefix      string
@@ -46,6 +47,7 @@ func init() {
 
 	generateCmd.Flags().StringVarP(&accountName, "account-name", "n", "", "Azure Blob Storage Account Name")
 	generateCmd.Flags().StringVarP(&accountKey, "account-key", "k", "", "Azure Blob Storage Account Key")
+	generateCmd.Flags().StringVarP(&sasToken, "sas-token", "s", "", "Azure Blob Storage SAS Token")
 	generateCmd.Flags().StringVarP(&container, "container", "c", "", "Azure Blob Storage container")
 	generateCmd.Flags().StringVarP(&outputFile, "output", "o", "", "File path to write results to (e.g. ~/az-hashdeep.txt)")
 	generateCmd.Flags().StringVarP(&prefix, "prefix", "p", "", "Optional prefix to prepend to file paths")
@@ -53,7 +55,7 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) {
-	c, err := internal.NewGenerateConfig(accountName, accountKey, container, outputFile, prefix, calculate, workerCount)
+	c, err := internal.NewGenerateConfig(accountName, accountKey, sasToken, container, outputFile, prefix, calculate, workerCount)
 
 	if err != nil {
 		log.Fatalf("Configuration error: %+v", err)

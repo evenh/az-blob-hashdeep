@@ -10,7 +10,7 @@ Get precompiled binaries from the [releases page](https://github.com/evenh/az-bl
 
 ```bash
 export AZURE_ACCOUNT_NAME=myaccount
-export AZURE_ACCOUNT_KEY=secretKey
+export AZURE_ACCOUNT_KEY=secretKey # --sas-key is also supported as an alternative
 export AZURE_CONTAINER=migrationcontainer
 
 ./az-blob-hashdeep generate --account-name=$AZURE_ACCOUNT_NAME \
