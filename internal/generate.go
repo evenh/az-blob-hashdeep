@@ -32,7 +32,7 @@ import (
 
 const maxAzResults int32 = 5000
 const channelSize = maxAzResults * 2
-const progressInterval = 30 * time.Second
+const progressInterval = 5 * time.Minute
 
 var mdFivess = md5simd.NewServer()
 
