@@ -23,9 +23,9 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
 	"github.com/evenh/az-blob-hashdeep/internal/hashes"
-	md5simd "github.com/minio/md5-simd"
 	"github.com/openlyinc/pointy"
 	log "github.com/sirupsen/logrus"
 )
@@ -34,11 +34,7 @@ const maxAzResults int32 = 5000
 const channelSize = maxAzResults * 2
 const progressInterval = 5 * time.Minute
 
-var mdFivess = md5simd.NewServer()
-
 func Generate(ctx context.Context, c *GenerateConfig) {
-	defer mdFivess.Close()
-
 	var wg sync.WaitGroup
 	files := make(chan *HashdeepEntry, channelSize)
 	writer := &HashdeepOutputFile{OutputFile: c.OutputFile, PathPrefix: c.Prefix}
@@ -99,13 +95,15 @@ func traverseBlobStorage(ctx context.Context, files chan *HashdeepEntry, c *Gene
 	var hasher hashes.Hasher
 	if c.Calculate {
 		logger.Info("hashing strategy: Download files and calculate hashes locally")
-		hasher = hashes.DownloadAndCalculateHasher{
-			Client:           &container,
-			MdFiveHashServer: &mdFivess,
+		hasher = &hashes.DownloadAndCalculateHasher{
+			Client: &container,
 		}
+		// hasher = &hashes.BuiltinDownloadAndCalculateHasher{
+		// 	Client: &container,
+		// }
 	} else {
 		logger.Info("hashing strategy: Use hash from blob metadata")
-		hasher = hashes.MetadataHasher{}
+		hasher = &hashes.MetadataHasher{}
 	}
 	hashJobs, workersGroup := configureBackgroundWorkers(ctx, c.WorkerCount, hasher, files)
 
@@ -138,7 +136,7 @@ func traverseBlobStorage(ctx context.Context, files chan *HashdeepEntry, c *Gene
 	close(hashJobs)
 
 	if err := pager.Err(); err != nil {
-		handleErrors("list_blobs", err)
+		handleErrors("list_blobs", err)(logger)
 	}
 
 	logger.Debug("awaiting workersGroup")
@@ -152,7 +150,7 @@ func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
 
 	container, err := configureContainerClient(c)
 	if err != nil {
-		handleErrors("az_client_configuration", err)
+		handleErrors("az_client_configuration", err)(logger)
 		os.Exit(1)
 	}
 
@@ -160,7 +158,7 @@ func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
 	logger.Debug("performing connectivity test")
 	_, err = container.GetProperties(ctx, nil)
 	if err != nil {
-		handleErrors("connectivity_test", err)
+		handleErrors("connectivity_test", err)(logger)
 		os.Exit(1)
 	}
 
@@ -172,11 +170,19 @@ func azureCheck(ctx context.Context, c *GenerateConfig) azblob.ContainerClient {
 func configureContainerClient(c *GenerateConfig) (azblob.ContainerClient, error) {
 	logger := log.WithField("phase", "configure_auth")
 	u := fmt.Sprintf("https://%s.blob.core.windows.net/%s", c.AccountName, c.Container)
+	opts := &azblob.ClientOptions{
+		Transporter: customHttpClient(c.WorkerCount*2, 10*time.Second),
+		Retry: policy.RetryOptions{
+			MaxRetries:    3,
+			RetryDelay:    4,
+			MaxRetryDelay: 3 * 3,
+		},
+	}
 
 	if len(c.SasToken) > 0 {
 		logger.Infof("Using SAS token")
 		sasFormat := fmt.Sprintf("%s?%s", u, c.SasToken)
-		return azblob.NewContainerClientWithNoCredential(sasFormat, nil)
+		return azblob.NewContainerClientWithNoCredential(sasFormat, opts)
 	}
 
 	// Account key
@@ -186,5 +192,5 @@ func configureContainerClient(c *GenerateConfig) (azblob.ContainerClient, error)
 		log.Fatalf("could not configure account key: %+v", err)
 	}
 
-	return azblob.NewContainerClientWithSharedKey(u, credential, nil)
+	return azblob.NewContainerClientWithSharedKey(u, credential, opts)
 }

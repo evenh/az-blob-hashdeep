@@ -15,7 +15,12 @@ limitations under the License.
 */
 package internal
 
-import log "github.com/sirupsen/logrus"
+import (
+	"net/http"
+	"time"
+
+	log "github.com/sirupsen/logrus"
+)
 
 func handleErrors(step string, err error) func(logger *log.Entry) {
 	return func(logger *log.Entry) {
@@ -25,5 +30,18 @@ func handleErrors(step string, err error) func(logger *log.Entry) {
 		}
 
 		logger.WithField("step", step).Warnf("encountered error: %v", err)
+	}
+}
+
+func customHttpClient(maxConnections int, idleConnectionTimeout time.Duration) *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns = maxConnections
+	t.MaxConnsPerHost = maxConnections
+	t.MaxIdleConnsPerHost = maxConnections
+	t.IdleConnTimeout = idleConnectionTimeout
+
+	return &http.Client{
+		Timeout:   idleConnectionTimeout,
+		Transport: t,
 	}
 }

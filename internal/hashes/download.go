@@ -17,11 +17,11 @@ package hashes
 
 import (
 	"context"
+	"crypto/md5"
 	"fmt"
 	"io"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/storage/azblob"
-	md5simd "github.com/minio/md5-simd"
 	"github.com/openlyinc/pointy"
 	log "github.com/sirupsen/logrus"
 )
@@ -37,26 +37,29 @@ var (
 
 // Stream bytes to memory and perform MD5 hashing locally.
 type DownloadAndCalculateHasher struct {
-	Client           *azblob.ContainerClient
-	MdFiveHashServer *md5simd.Server
+	Client *azblob.ContainerClient
 }
 
-func (d DownloadAndCalculateHasher) Hash(ctx context.Context, item azblob.BlobItemInternal) (*string, error) {
+func (d *DownloadAndCalculateHasher) Hash(ctx context.Context, item azblob.BlobItemInternal) (*string, error) {
 	url := d.Client.NewBlobClient(*item.Name)
 	resp, err := url.Download(ctx, downloadBlobOptions)
 	if err != nil {
 		return nil, err
 	}
 
-	mdFive := (*d.MdFiveHashServer).NewHash()
-	defer mdFive.Close()
+	h := md5.New()
 
 	blobStream := resp.Body(azblob.RetryReaderOptions{MaxRetryRequests: 5})
+	defer func(blobStream io.ReadCloser) {
+		if err := blobStream.Close(); err != nil {
+			logger.Warnf("could not close blob stream for %s", url.URL())
+		}
+	}(blobStream)
 
-	if _, err = io.Copy(mdFive, blobStream); err != nil {
+	if _, err = io.Copy(h, blobStream); err != nil {
 		logger.Warnf("could not download %s for local hash calculation", url.URL())
 		return nil, nil
 	}
 
-	return pointy.String(fmt.Sprintf("%x", mdFive.Sum(nil))), nil
+	return pointy.String(fmt.Sprintf("%x", h.Sum(nil))), nil
 }
