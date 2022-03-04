@@ -3,7 +3,7 @@ module github.com/evenh/az-blob-hashdeep
 go 1.17
 
 require (
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.21.0
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.22.0
 	github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.2.0
 	github.com/openlyinc/pointy v1.1.2
 	github.com/pkg/errors v0.9.1
