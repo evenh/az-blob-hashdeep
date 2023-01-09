@@ -1,6 +1,6 @@
 module github.com/evenh/az-blob-hashdeep
 
-go 1.17
+go 1.19
 
 require (
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v0.21.0
