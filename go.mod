@@ -16,8 +16,8 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/net v0.0.0-20210813160813-60bc85c4be6d // indirect
-	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/sys v0.0.0-20220722155257-8c9f86f7a55f // indirect
+	golang.org/x/text v0.3.8 // indirect
 )
 
 replace github.com/Azure/azure-sdk-for-go/sdk/storage/azblob v0.2.0 => github.com/evenh/azure-sdk-for-go/sdk/storage/azblob v0.2.1-0.20220128100502-5d716a1d24c2
